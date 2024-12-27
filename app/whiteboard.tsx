@@ -102,7 +102,7 @@ export default function Whiteboard() {
         drag(e)
       }}
       onMouseUp={stopDragging}
-      onMouseLeave={(e) => {
+      onMouseLeave={() => {  // Removed unused 'e' parameter
         handleMouseLeave()
         stopDragging()
       }}
@@ -147,4 +147,3 @@ export default function Whiteboard() {
     </div>
   )
 }
-
