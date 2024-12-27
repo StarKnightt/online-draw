@@ -26,7 +26,7 @@ export function useDrawing() {
   const [elements, setElements] = useState<DrawingElement[]>([])
   const [tool, setTool] = useState<Tool>('pen')
   const [color, setColor] = useState('#000000')
-  const [size, setSize] = useState(2)
+  const [size, setSize] = useState(4) // Update 1: Initial size set to 4
   const [history, setHistory] = useState<DrawingElement[][]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const currentPoints = useRef<Point[]>([])
@@ -101,7 +101,7 @@ export function useDrawing() {
     tempContextRef.current.lineWidth = size
   }, [color, size])
 
-  const draw = useCallback(({ nativeEvent }: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = useCallback(({ nativeEvent }: React.MouseEvent<HTMLCanvasElement>) => { // Update 2: Updated draw function
     if (!isDrawing.current || !tempContextRef.current || !tempCanvasRef.current) return
 
     const { offsetX, offsetY } = nativeEvent
@@ -110,18 +110,53 @@ export function useDrawing() {
     // Clear the temporary canvas
     tempContextRef.current.clearRect(0, 0, tempCanvasRef.current.width, tempCanvasRef.current.height)
     
+    // Set composite operation based on tool
+    tempContextRef.current.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over'
+    
     // Draw the current stroke on the temporary canvas
     drawSmoothLine(tempContextRef.current, currentPoints.current)
-  }, [drawSmoothLine])
+    
+    // Reset composite operation
+    tempContextRef.current.globalCompositeOperation = 'source-over'
+  }, [drawSmoothLine, tool])
 
-  const stopDrawing = useCallback(() => {
+  const erase = useCallback(({ nativeEvent }: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!contextRef.current || !canvasRef.current) return
+
+    const { offsetX, offsetY } = nativeEvent
+    const eraseRadius = size * 2
+
+    contextRef.current.globalCompositeOperation = 'destination-out'
+    contextRef.current.beginPath()
+    contextRef.current.arc(offsetX, offsetY, eraseRadius, 0, Math.PI * 2)
+    contextRef.current.fill()
+    contextRef.current.globalCompositeOperation = 'source-over'
+
+    // Update elements state to reflect erased areas
+    setElements(prevElements => 
+      prevElements.map(el => ({
+        ...el,
+        points: el.points.filter(p => 
+          Math.hypot(p.x - offsetX, p.y - offsetY) > eraseRadius
+        )
+      })).filter(el => el.points.length > 1)
+    )
+  }, [size])
+
+
+  const stopDrawing = useCallback(() => { // Update 3: Updated stopDrawing function
     if (!isDrawing.current || !contextRef.current || !tempContextRef.current) return
 
     isDrawing.current = false
 
     // Add the completed stroke to the main canvas
     if (currentPoints.current.length > 0) {
+      if (tool === 'eraser') {
+        contextRef.current.globalCompositeOperation = 'destination-out'
+      }
+      
       drawSmoothLine(contextRef.current, currentPoints.current)
+      contextRef.current.globalCompositeOperation = 'source-over'
       
       // Add the new element to the history
       const newElement = {
@@ -189,6 +224,7 @@ export function useDrawing() {
     initializeCanvas,
     startDrawing,
     draw,
+    erase,
     stopDrawing,
     clear,
     undo,

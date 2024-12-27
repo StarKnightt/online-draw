@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDrawing } from './hooks/use-drawing'
 import { useViewport } from './hooks/use-viewport'
 import { Toolbar } from './components/toolbar'
 import { ColorPicker } from './components/color-picker'
 import { Grid } from './components/grid'
+import { Cursor } from './components/cursor'
 
 export default function Whiteboard() {
   const {
@@ -24,6 +25,7 @@ export default function Whiteboard() {
     setColor,
     size,
     setSize,
+    erase,
   } = useDrawing()
 
   const {
@@ -35,6 +37,18 @@ export default function Whiteboard() {
   } = useViewport()
 
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 })
+  const [isCursorVisible, setIsCursorVisible] = useState(false)
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setCursorPosition({ x: e.clientX, y: e.clientY })
+    if (!isCursorVisible) setIsCursorVisible(true)
+  }
+
+  const handleMouseLeave = () => {
+    setIsCursorVisible(false)
+  }
 
   useEffect(() => {
     const container = containerRef.current
@@ -83,9 +97,15 @@ export default function Whiteboard() {
       className="fixed inset-0 bg-white overflow-hidden"
       onWheel={handleWheel}
       onMouseDown={startDragging}
-      onMouseMove={drag}
+      onMouseMove={(e) => {
+        handleMouseMove(e)
+        drag(e)
+      }}
       onMouseUp={stopDragging}
-      onMouseLeave={stopDragging}
+      onMouseLeave={(e) => {
+        handleMouseLeave()
+        stopDragging()
+      }}
       onContextMenu={handleContextMenu}
     >
       <Grid viewport={viewport} />
@@ -96,12 +116,20 @@ export default function Whiteboard() {
       />
       <canvas
         ref={tempCanvasRef}
-        onMouseDown={startDrawing}
-        onMouseMove={draw}
-        onMouseUp={stopDrawing}
-        onMouseLeave={stopDrawing}
+        onMouseDown={tool === 'eraser' ? undefined : startDrawing}
+        onMouseMove={(e) => tool === 'eraser' ? erase(e) : draw(e)}
+        onMouseUp={tool === 'eraser' ? undefined : stopDrawing}
+        onMouseLeave={tool === 'eraser' ? undefined : stopDrawing}
         className="absolute inset-0 w-full h-full"
         style={canvasStyle}
+      />
+      <Cursor
+        x={cursorPosition.x}
+        y={cursorPosition.y}
+        size={size}
+        color={color}
+        tool={tool}
+        visible={isCursorVisible}
       />
       <Toolbar 
         tool={tool} 
