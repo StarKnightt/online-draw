@@ -74,15 +74,15 @@ export default function Whiteboard() {
     const container = containerRef.current
     const canvas = canvasRef.current
     const tempCanvas = tempCanvasRef.current
-    
+
     if (container && canvas && tempCanvas) {
       const { width, height } = container.getBoundingClientRect()
-      
+
       canvas.width = width
       canvas.height = height
       tempCanvas.width = width
       tempCanvas.height = height
-      
+
       initializeCanvas(canvas, tempCanvas)
     }
 
@@ -143,7 +143,7 @@ export default function Whiteboard() {
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="fixed inset-0 bg-gray-100 overflow-hidden"
       onWheel={handleWheel}
@@ -236,8 +236,8 @@ export default function Whiteboard() {
         tool={tool}
         visible={isCursorVisible}
       />
-      <Toolbar 
-        tool={tool} 
+      <Toolbar
+        tool={tool}
         setTool={changeTool} // Use the new changeTool function
         clear={clear}
         undo={undo}

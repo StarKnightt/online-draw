@@ -53,4 +53,3 @@ export function Cursor({ x, y, size, color, tool, visible }: CursorProps) {
     </div>
   )
 }
-

@@ -47,5 +47,3 @@ interface GridProps {
       </svg>
     )
   }
-  
-  
