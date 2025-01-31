@@ -347,11 +347,12 @@ export function useDrawing() {
   }, [color, drawSmoothLine, drawShape, elements, historyIndex, size, tool])
 
   const addText = useCallback((text: string) => {
-    if (!textInput || !contextRef.current) return
+    if (!textInput || !contextRef.current || !text.trim()) return
 
     contextRef.current.font = `${size * 4}px Inter, sans-serif`
     contextRef.current.fillStyle = color
-    contextRef.current.fillText(text, textInput.x, textInput.y + size * 4)
+    contextRef.current.textBaseline = 'top'
+    contextRef.current.fillText(text, textInput.x, textInput.y)
 
     const newElement: DrawingElement = {
       type: 'text',

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { MousePointer2, Pencil, Square, Circle, Type, Eraser, Undo2, Redo2 } from 'lucide-react'
 import type { Tool } from "../hooks/use-drawing"
+import { Tooltip } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 interface ToolbarProps {
   tool: Tool
