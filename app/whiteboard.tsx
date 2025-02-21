@@ -7,6 +7,7 @@ import { Toolbar } from './components/toolbar'
 import { ColorPicker } from './components/color-picker'
 import { Grid } from './components/grid'
 import { Cursor } from './components/cursor'
+import { TextInput } from './components/text-input'
 
 export default function Whiteboard() {
   const {
@@ -20,7 +21,7 @@ export default function Whiteboard() {
     undo,
     redo,
     tool,
-    changeTool, // Use the new changeTool function
+    changeTool,
     color,
     setColor,
     size,
@@ -34,6 +35,12 @@ export default function Whiteboard() {
     startTextBoxResize,
     moveTextBox,
     stopTextBoxAction,
+    handleEraser,
+    handleTextInput,
+    commitText,
+    isDragging,
+    setIsDragging,
+    textBoxes,
   } = useDrawing()
 
   const {
@@ -114,14 +121,14 @@ export default function Whiteboard() {
   const handleTextInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      addText(textInput!.text)
+      commitText()
     }
   }
 
   const handleClickOutside = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement
     if (textInput && !target.closest('.text-input-container')) {
-      addText(textInput.text)
+      commitText()
     }
   }
 
@@ -142,29 +149,26 @@ export default function Whiteboard() {
     // function implementation
   }
 
+  const updateTextInput = (text: string) => {
+    if (textInput) {
+      const newHeight = Math.max(40, text.split('\n').length * 24); // Adjust height based on line count
+      setTextInput({
+        ...textInput,
+        text,
+        height: newHeight,
+      });
+    }
+  };
+
   return (
     <div
       ref={containerRef}
       className="fixed inset-0 bg-gray-100 overflow-hidden"
       onWheel={handleWheel}
-      onMouseDown={(e) => {
-        if (!textInput) startDragging(e)
-        handleClickOutside(e)
-      }}
-      onMouseMove={(e) => {
-        handleMouseMove(e)
-        if (!textInput) drag(e)
-      }}
-      onMouseUp={() => {
-        stopDragging()
-        stopTextBoxAction()
-        stopErasing()
-      }}
-      onMouseLeave={() => {
-        handleMouseLeave()
-        stopDragging()
-      }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       onContextMenu={handleContextMenu}
+      onClick={handleClickOutside}
     >
       <Grid viewport={viewport} />
       <canvas
@@ -174,13 +178,60 @@ export default function Whiteboard() {
       />
       <canvas
         ref={tempCanvasRef}
-        onMouseDown={tool === 'eraser' ? undefined : startDrawing}
-        onMouseMove={(e) => tool === 'eraser' ? erase(e) : draw(e)}
-        onMouseUp={tool === 'eraser' ? undefined : stopDrawing}
-        onMouseLeave={tool === 'eraser' ? undefined : stopDrawing}
         className="absolute inset-0 w-full h-full"
         style={canvasStyle}
+        onMouseDown={(e) => {
+          if (tool === 'eraser') {
+            setIsDragging(true)
+            handleEraser(e)
+          } else if (tool === 'text') {
+            handleTextInput(e)
+          } else {
+            startDrawing(e)
+          }
+        }}
+        onMouseMove={(e) => {
+          if (tool === 'eraser' && isDragging) {
+            handleEraser(e)
+          } else {
+            draw(e)
+          }
+        }}
+        onMouseUp={() => {
+          setIsDragging(false)
+          stopDrawing()
+          stopTextBoxAction()
+        }}
+        onMouseLeave={() => {
+          setIsDragging(false)
+          stopDrawing()
+          handleMouseLeave()
+        }}
       />
+      {textBoxes.map((textBox) => (
+        <div
+          key={textBox.id}
+          className="absolute text-box"
+          style={{
+            left: `${textBox.x + viewport.x}px`,
+            top: `${textBox.y + viewport.y}px`,
+            width: `${textBox.width}px`,
+            height: `${textBox.height}px`,
+            transform: `scale(${viewport.zoom})`,
+            transformOrigin: '0 0',
+          }}
+        >
+          <div className="absolute inset-0 p-2 font-inter"
+            style={{
+              fontSize: `${textBox.fontSize}px`,
+              color: textBox.color,
+              cursor: 'move',
+            }}
+          >
+            {textBox.text}
+          </div>
+        </div>
+      ))}
       {textInput && (
         <div
           className="absolute text-input-container"
@@ -189,6 +240,8 @@ export default function Whiteboard() {
             top: `${textInput.y + viewport.y}px`,
             width: `${textInput.width}px`,
             height: `${textInput.height}px`,
+            transform: `scale(${viewport.zoom})`,
+            transformOrigin: '0 0',
           }}
         >
           <div
@@ -199,17 +252,17 @@ export default function Whiteboard() {
               ref={textInputRef}
               className="w-full h-full p-2 bg-transparent border-none outline-none resize-none font-inter rounded-lg"
               style={{
-                fontSize: `${size * 4}px`,
-                color: color,
+                fontSize: `${textInput.fontSize}px`,
+                color: textInput.color,
                 fontFamily: 'Inter, sans-serif',
+                lineHeight: '1.2',
+                overflow: 'hidden',
               }}
               value={textInput.text}
-              onChange={(e) => {
-                if (textInput) {
-                  setTextInput({ ...textInput, text: e.target.value })
-                }
-              }}
+              onChange={(e) => updateTextInput(e.target.value)}
               onKeyDown={handleTextInputKeyDown}
+              placeholder="Type something..."
+              autoFocus
             />
             {['nw', 'ne', 'sw', 'se'].map((direction) => (
               <div
@@ -249,6 +302,14 @@ export default function Whiteboard() {
         size={size}
         setSize={setSize}
         tool={tool}
+      />
+      <TextInput
+        textInput={textInput}
+        viewport={viewport}
+        size={size}
+        color={color}
+        onCommit={commitText}
+        onUpdate={updateTextInput}
       />
     </div>
   )

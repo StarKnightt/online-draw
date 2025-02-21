@@ -9,18 +9,22 @@ interface Point {
 }
 
 interface TextBox {
-  x: number
-  y: number
-  text: string
-  width: number
-  height: number
-  isDragging: boolean
-  isResizing: boolean
-  resizeDirection: 'nw' | 'ne' | 'sw' | 'se' | null
-  initialX: number
-  initialY: number
-  initialWidth: number
-  initialHeight: number
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  width: number;
+  height: number;
+  fontSize: number;
+  color: string;
+  isDragging: boolean;
+  isResizing: boolean;
+  isEditing: boolean;
+  resizeDirection: 'nw' | 'ne' | 'sw' | 'se' | null;
+  initialX: number;
+  initialY: number;
+  initialWidth: number;
+  initialHeight: number;
 }
 
 export type Tool = 'select' | 'pen' | 'rectangle' | 'ellipse' | 'text' | 'eraser'
@@ -33,6 +37,19 @@ export interface DrawingElement {
   text?: string
   width?: number
   height?: number
+}
+
+const isPointInRect = (x: number, y: number, rect: { x: number; y: number; width: number; height: number }) => {
+  return x >= rect.x && 
+         x <= rect.x + rect.width && 
+         y >= rect.y && 
+         y <= rect.y + rect.height
+}
+
+const isPointNearPath = (x: number, y: number, points: Point[], threshold = 5) => {
+  return points.some(point => 
+    Math.hypot(point.x - x, point.y - y) <= threshold
+  )
 }
 
 export function useDrawing() {
@@ -50,6 +67,10 @@ export function useDrawing() {
   const currentPoints = useRef<Point[]>([])
   const [textInput, setTextInput] = useState<TextBox | null>(null)
   const lastErasePoint = useRef<Point | null>(null)
+  const [selectedElement, setSelectedElement] = useState<DrawingElement | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [textBoxes, setTextBoxes] = useState<TextBox[]>([])
+  const [selectedTextBox, setSelectedTextBox] = useState<string | null>(null)
 
   const initializeCanvas = useCallback((canvas: HTMLCanvasElement, tempCanvas: HTMLCanvasElement) => {
     const context = canvas.getContext('2d', { willReadFrequently: true })
@@ -126,32 +147,49 @@ export function useDrawing() {
     context.closePath()
   }, [])
 
-  const startDrawing = useCallback(({ nativeEvent }: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!tempContextRef.current) return
+  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  };
 
-    const { offsetX, offsetY } = nativeEvent
-    isDrawing.current = true
-    currentPoints.current = [{ x: offsetX, y: offsetY }]
+  const startDrawing = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!tempContextRef.current) return;
+
+    const coords = getCanvasCoordinates(e);
+    isDrawing.current = true;
+    currentPoints.current = [coords];
     
     if (tool === 'text') {
       setTextInput({
-        x: offsetX,
-        y: offsetY,
+        id: Date.now().toString(),
+        x: coords.x,
+        y: coords.y,
         text: '',
         width: 200,
         height: 100,
+        fontSize: 16,
+        color: '#000000',
         isDragging: false,
         isResizing: false,
         resizeDirection: null,
-        initialX: offsetX,
-        initialY: offsetY,
+        initialX: coords.x,
+        initialY: coords.y,
         initialWidth: 200,
         initialHeight: 100,
-      })
+        isEditing: false,
+      });
     } else {
-      tempContextRef.current.strokeStyle = color
-      tempContextRef.current.lineWidth = size
+      tempContextRef.current.strokeStyle = color;
+      tempContextRef.current.lineWidth = size;
     }
+    setIsDragging(true);
   }, [color, size, tool])
 
   const startTextBoxDrag = useCallback((e: React.MouseEvent, bounds: { width: number; height: number }) => {
@@ -249,18 +287,18 @@ export function useDrawing() {
     }
   }, [textInput])
 
-  const draw = useCallback(({ nativeEvent }: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing.current || !tempContextRef.current || !tempCanvasRef.current || tool === 'text') return
+  const draw = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing.current || !tempContextRef.current || !tempCanvasRef.current || tool === 'text') return;
 
-    const { offsetX, offsetY } = nativeEvent
-    currentPoints.current.push({ x: offsetX, y: offsetY })
+    const coords = getCanvasCoordinates(e);
+    currentPoints.current.push(coords);
 
     tempContextRef.current.clearRect(0, 0, tempCanvasRef.current.width, tempCanvasRef.current.height)
     
     if (tool === 'pen') {
       drawSmoothLine(tempContextRef.current, currentPoints.current)
     } else if (tool === 'rectangle' || tool === 'ellipse') {
-      drawShape(tempContextRef.current, currentPoints.current[0], { x: offsetX, y: offsetY }, tool)
+      drawShape(tempContextRef.current, currentPoints.current[0], { x: coords.x, y: coords.y }, tool)
     }
   }, [drawSmoothLine, drawShape, tool])
 
@@ -344,6 +382,7 @@ export function useDrawing() {
     }
     
     currentPoints.current = []
+    setIsDragging(false)
   }, [color, drawSmoothLine, drawShape, elements, historyIndex, size, tool])
 
   const addText = useCallback((text: string) => {
@@ -423,6 +462,93 @@ export function useDrawing() {
     redrawCanvas()
   }, [redrawCanvas])
 
+  const handleEraser = useCallback((e: React.MouseEvent) => {
+    if (tool !== 'eraser') return
+    
+    const { offsetX, offsetY } = e.nativeEvent
+    const eraseRadius = size * 2
+
+    setElements(prevElements => 
+      prevElements.filter(el => {
+        // For text elements, check if click is within bounds
+        if (el.type === 'text') {
+          const textBounds = {
+            x: el.points[0].x - 5,
+            y: el.points[0].y - 5,
+            width: (el.width || 0) + 10,
+            height: (el.height || 0) + 10
+          }
+          return !isPointInRect(offsetX, offsetY, textBounds)
+        }
+        
+        // For other elements, check if click is near any point
+        return !isPointNearPath(offsetX, offsetY, el.points, eraseRadius)
+      })
+    )
+  }, [tool, size])
+
+  const handleTextInput = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (tool !== 'text') return;
+    
+    const coords = getCanvasCoordinates(e);
+    const newTextBox: TextBox = {
+      id: Date.now().toString(),
+      x: coords.x,
+      y: coords.y,
+      text: '',
+      width: 200,
+      height: 40,
+      fontSize: size * 4,
+      color: color,
+      isDragging: false,
+      isResizing: false,
+      isEditing: true,
+      resizeDirection: null,
+      initialX: coords.x,
+      initialY: coords.y,
+      initialWidth: 200,
+      initialHeight: 40,
+    };
+    
+    setTextInput(newTextBox);
+  }, [tool, size, color]);
+
+  const commitText = useCallback(() => {
+    if (!textInput?.text.trim()) {
+      setTextInput(null);
+      return;
+    }
+    
+    setTextBoxes(prev => [...prev, textInput]);
+    setTextInput(null);
+    
+    // Add to drawing history
+    const newElement: DrawingElement = {
+      type: 'text',
+      points: [{ x: textInput.x, y: textInput.y }],
+      color: textInput.color,
+      size: textInput.fontSize / 4,
+      text: textInput.text,
+      width: textInput.width,
+      height: textInput.height,
+    };
+    
+    setElements(prev => [...prev, newElement]);
+    setHistory(prev => [...prev.slice(0, historyIndex + 1), [...elements, newElement]]);
+    setHistoryIndex(prev => prev + 1);
+  }, [textInput, elements, historyIndex]);
+
+  const handleTextBoxClick = useCallback((e: React.MouseEvent, textBox: TextBox) => {
+    e.stopPropagation();
+    setSelectedTextBox(textBox.id);
+  }, []);
+
+  const handleTextBoxDoubleClick = useCallback((e: React.MouseEvent, textBox: TextBox) => {
+    e.stopPropagation();
+    setTextInput(textBox);
+    setTextBoxes(prev => prev.filter(box => box.id !== textBox.id));
+  }, []);
+
   return {
     canvasRef,
     tempCanvasRef,
@@ -449,5 +575,16 @@ export function useDrawing() {
     moveTextBox,
     stopTextBoxAction,
     changeTool,
+    handleEraser,
+    handleTextInput,
+    commitText,
+    isDragging,
+    setIsDragging,
+    selectedTextBox,
+    setSelectedTextBox,
+    handleTextBoxClick,
+    handleTextBoxDoubleClick,
+    textBoxes,
+    setTextBoxes,
   }
 }
