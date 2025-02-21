@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useDrawing } from './hooks/use-drawing'
 import { useViewport } from './hooks/use-viewport'
 import { Toolbar } from './components/toolbar'
@@ -41,11 +41,13 @@ export default function Whiteboard() {
     isDragging,
     setIsDragging,
     textBoxes,
+    setTextBoxes,
+    viewport,
+    setViewport,
+    updateViewport,
   } = useDrawing()
 
   const {
-    viewport,
-    handleWheel,
     startDragging,
     drag,
     stopDragging,
@@ -57,6 +59,7 @@ export default function Whiteboard() {
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 })
   const [isCursorVisible, setIsCursorVisible] = useState(false)
   const [bounds, setBounds] = useState({ width: 0, height: 0 })
+  const [selectedTextBox, setSelectedTextBox] = useState<string | null>(null)
 
   useEffect(() => {
     if (containerRef.current) {
@@ -126,11 +129,14 @@ export default function Whiteboard() {
   }
 
   const handleClickOutside = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement
-    if (textInput && !target.closest('.text-input-container')) {
-      commitText()
+    const target = e.target as HTMLElement;
+    if (!target.closest('.text-box') && !target.closest('.text-input-container')) {
+      setSelectedTextBox(null);
+      if (textInput) {
+        commitText();
+      }
     }
-  }
+  };
 
   const canvasStyle = {
     transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
@@ -160,12 +166,103 @@ export default function Whiteboard() {
     }
   };
 
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (tool === 'text') {
+      e.stopPropagation();
+      handleTextInput(e);
+      return;
+    }
+    
+    const canvasRect = e.currentTarget.getBoundingClientRect();
+    const scaleX = e.currentTarget.width / canvasRect.width;
+    const scaleY = e.currentTarget.height / canvasRect.height;
+    
+    // Convert click coordinates to canvas space
+    const canvasX = (e.clientX - canvasRect.left - viewport.x) / viewport.zoom;
+    const canvasY = (e.clientY - canvasRect.top - viewport.y) / viewport.zoom;
+
+    // First check if we clicked on a text box
+    const clickedTextBox = textBoxes.find(box => {
+      return (
+        canvasX >= box.x &&
+        canvasX <= box.x + box.width &&
+        canvasY >= box.y &&
+        canvasY <= box.y + box.height
+      );
+    });
+
+    if (clickedTextBox) {
+      if (tool === 'eraser') {
+        setTextBoxes(prev => prev.filter(box => box.id !== clickedTextBox.id));
+        return;
+      } else if (tool === 'select') {
+        // Handle selection
+        setSelectedTextBox(clickedTextBox.id);
+        return;
+      }
+      return;
+    }
+
+    // If no text box was clicked, handle normal drawing/erasing/text
+    if (tool === 'eraser') {
+      setIsDragging(true);
+      handleEraser(e);
+    } else if (tool === 'select') {
+      setSelectedTextBox(null);
+    } else {
+      startDrawing(e);
+    }
+  };
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    
+    const delta = e.deltaY;
+    const zoom = viewport.zoom * Math.pow(0.95, delta / 100);
+    
+    // Limit zoom level
+    const newZoom = Math.min(Math.max(0.1, zoom), 5);
+    
+    // Get mouse position relative to canvas
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Calculate new position to zoom towards mouse
+    const newX = viewport.x + (mouseX - mouseX * (newZoom / viewport.zoom));
+    const newY = viewport.y + (mouseY - mouseY * (newZoom / viewport.zoom));
+    
+    // Use updateViewport instead of setViewport to ensure redraw
+    updateViewport({
+      x: newX,
+      y: newY,
+      zoom: newZoom,
+    });
+  }, [viewport, canvasRef, updateViewport]);
+
+  const handlePan = useCallback((e: React.MouseEvent) => {
+    if (e.buttons !== 4 && e.buttons !== 1) return;
+    
+    updateViewport({
+      ...viewport,
+      x: viewport.x + e.movementX,
+      y: viewport.y + e.movementY,
+    });
+  }, [viewport, updateViewport]);
+
   return (
     <div
       ref={containerRef}
       className="fixed inset-0 bg-gray-100 overflow-hidden"
       onWheel={handleWheel}
-      onMouseMove={handleMouseMove}
+      onMouseMove={(e) => {
+        handleMouseMove(e);
+        if (e.buttons === 4 || (e.buttons === 1 && tool === 'select')) {
+          handlePan(e);
+        }
+      }}
       onMouseLeave={handleMouseLeave}
       onContextMenu={handleContextMenu}
       onClick={handleClickOutside}
@@ -180,38 +277,29 @@ export default function Whiteboard() {
         ref={tempCanvasRef}
         className="absolute inset-0 w-full h-full"
         style={canvasStyle}
-        onMouseDown={(e) => {
-          if (tool === 'eraser') {
-            setIsDragging(true)
-            handleEraser(e)
-          } else if (tool === 'text') {
-            handleTextInput(e)
-          } else {
-            startDrawing(e)
-          }
-        }}
+        onMouseDown={handleCanvasMouseDown}
         onMouseMove={(e) => {
           if (tool === 'eraser' && isDragging) {
-            handleEraser(e)
+            handleEraser(e);
           } else {
-            draw(e)
+            draw(e);
           }
         }}
         onMouseUp={() => {
-          setIsDragging(false)
-          stopDrawing()
-          stopTextBoxAction()
+          setIsDragging(false);
+          stopDrawing();
+          stopTextBoxAction();
         }}
         onMouseLeave={() => {
-          setIsDragging(false)
-          stopDrawing()
-          handleMouseLeave()
+          setIsDragging(false);
+          stopDrawing();
+          handleMouseLeave();
         }}
       />
       {textBoxes.map((textBox) => (
         <div
           key={textBox.id}
-          className="absolute text-box"
+          className={`absolute text-box ${selectedTextBox === textBox.id ? 'ring-2 ring-blue-500' : ''}`}
           style={{
             left: `${textBox.x + viewport.x}px`,
             top: `${textBox.y + viewport.y}px`,
@@ -219,13 +307,31 @@ export default function Whiteboard() {
             height: `${textBox.height}px`,
             transform: `scale(${viewport.zoom})`,
             transformOrigin: '0 0',
+            pointerEvents: tool === 'eraser' ? 'none' : 'auto',
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (tool === 'select') {
+              setSelectedTextBox(textBox.id);
+            }
+          }}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            setTextInput({
+              ...textBox,
+              isEditing: true,
+            });
+            setTextBoxes(prev => prev.filter(box => box.id !== textBox.id));
           }}
         >
-          <div className="absolute inset-0 p-2 font-inter"
+          <div 
+            className="absolute inset-0 p-2 font-inter"
             style={{
               fontSize: `${textBox.fontSize}px`,
               color: textBox.color,
-              cursor: 'move',
+              cursor: tool === 'select' ? 'move' : 'default',
+              userSelect: 'none',
+              backgroundColor: selectedTextBox === textBox.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
             }}
           >
             {textBox.text}
@@ -236,17 +342,21 @@ export default function Whiteboard() {
         <div
           className="absolute text-input-container"
           style={{
-            left: `${textInput.x + viewport.x}px`,
-            top: `${textInput.y + viewport.y}px`,
+            left: `${textInput.x * viewport.zoom + viewport.x}px`,
+            top: `${textInput.y * viewport.zoom + viewport.y}px`,
             width: `${textInput.width}px`,
             height: `${textInput.height}px`,
             transform: `scale(${viewport.zoom})`,
             transformOrigin: '0 0',
+            zIndex: 1000,  // Ensure it's above other elements
           }}
         >
           <div
             className="absolute inset-0 border-2 border-blue-500 rounded-lg bg-white shadow-lg"
-            onMouseDown={(e) => startTextBoxDrag(e, bounds)}
+            onMouseDown={(e) => {
+              e.stopPropagation();  // Prevent canvas events
+              startTextBoxDrag(e, bounds);
+            }}
           >
             <textarea
               ref={textInputRef}
@@ -256,28 +366,28 @@ export default function Whiteboard() {
                 color: textInput.color,
                 fontFamily: 'Inter, sans-serif',
                 lineHeight: '1.2',
-                overflow: 'hidden',
               }}
               value={textInput.text}
-              onChange={(e) => updateTextInput(e.target.value)}
-              onKeyDown={handleTextInputKeyDown}
+              onChange={(e) => {
+                const newHeight = Math.max(40, e.target.scrollHeight);
+                setTextInput({
+                  ...textInput,
+                  text: e.target.value,
+                  height: newHeight,
+                });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  commitText();
+                } else if (e.key === 'Escape') {
+                  setTextInput(null);
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
               placeholder="Type something..."
               autoFocus
             />
-            {['nw', 'ne', 'sw', 'se'].map((direction) => (
-              <div
-                key={direction}
-                className="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-full cursor-pointer hover:bg-blue-100"
-                style={{
-                  top: direction.includes('n') ? '-1.5px' : 'auto',
-                  bottom: direction.includes('s') ? '-1.5px' : 'auto',
-                  left: direction.includes('w') ? '-1.5px' : 'auto',
-                  right: direction.includes('e') ? '-1.5px' : 'auto',
-                  cursor: `${direction}-resize`,
-                }}
-                onMouseDown={(e) => startTextBoxResize(e, direction as any)}
-              />
-            ))}
           </div>
         </div>
       )}
@@ -291,7 +401,7 @@ export default function Whiteboard() {
       />
       <Toolbar
         tool={tool}
-        setTool={changeTool} // Use the new changeTool function
+        setTool={changeTool}
         clear={clear}
         undo={undo}
         redo={redo}
