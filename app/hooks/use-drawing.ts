@@ -132,7 +132,19 @@ export function useDrawing() {
   const redrawCanvas = useCallback(() => {
     if (!contextRef.current || !canvasRef.current) return;
 
-    contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    // Clear the canvas before redrawing
+    const canvas = canvasRef.current;
+    contextRef.current.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Save current transform
+    contextRef.current.save();
+    
+    // Apply viewport transform
+    contextRef.current.setTransform(
+      1, 0,
+      0, 1,
+      viewport.x, viewport.y
+    );
     
     elements.forEach(element => {
       if (!contextRef.current) return;
@@ -150,7 +162,10 @@ export function useDrawing() {
         drawShape(contextRef.current, element.points[0], element.points[element.points.length - 1], element.type);
       }
     });
-  }, [drawSmoothLine, drawShape, elements]);
+    
+    // Restore original transform
+    contextRef.current.restore();
+  }, [drawSmoothLine, drawShape, elements, viewport]);
 
   const updateViewport = useCallback((newViewport: { x: number; y: number; zoom: number }) => {
     setViewport(newViewport);
@@ -167,11 +182,8 @@ export function useDrawing() {
       context.strokeStyle = color
       context.lineWidth = size
       
-      context.setTransform(
-        viewport.zoom, 0,
-        0, viewport.zoom,
-        viewport.x, viewport.y
-      )
+      // Don't apply transformation here - it causes performance issues
+      // Let's handle this in our rendering logic instead
       
       contextRef.current = context
 
@@ -179,14 +191,13 @@ export function useDrawing() {
       tempContext.lineJoin = 'round'
       tempContext.strokeStyle = color
       tempContext.lineWidth = size
-      tempContext.setTransform(
-        viewport.zoom, 0,
-        0, viewport.zoom,
-        viewport.x, viewport.y
-      )
+      
       tempContextRef.current = tempContext
+
+      // Call redrawCanvas to ensure everything is rendered correctly
+      redrawCanvas();
     }
-  }, [color, size, viewport])
+  }, [color, size, viewport, redrawCanvas])
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = e.currentTarget;
@@ -614,8 +625,10 @@ export function useDrawing() {
     // Get correct canvas-space coordinates
     const canvas = e.currentTarget;
     const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / viewport.zoom;
-    const y = (e.clientY - rect.top) / viewport.zoom;
+    
+    // Corrected coordinate calculation
+    const x = (e.clientX - rect.left - viewport.x) / viewport.zoom;
+    const y = (e.clientY - rect.top - viewport.y) / viewport.zoom;
     
     const newTextBox: TextBox = {
       id: Date.now().toString(),
@@ -625,10 +638,10 @@ export function useDrawing() {
       width: 200,
       height: 40,
       fontSize: size * 4,
-      color: color,  // Use current color
+      color: color,
       isDragging: false,
       isResizing: false,
-      isEditing: true,  // Important: This triggers the input field
+      isEditing: true,
       resizeDirection: null,
       initialX: x,
       initialY: y,
@@ -637,7 +650,7 @@ export function useDrawing() {
     };
     
     setTextInput(newTextBox);
-  }, [tool, size, color, viewport.zoom]);
+  }, [tool, size, color, viewport]);
 
   const handleTextBoxClick = useCallback((e: React.MouseEvent, textBox: TextBox) => {
     e.stopPropagation();

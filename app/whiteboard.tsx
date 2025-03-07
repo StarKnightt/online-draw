@@ -174,12 +174,10 @@ export default function Whiteboard() {
     }
     
     const canvasRect = e.currentTarget.getBoundingClientRect();
-    const scaleX = e.currentTarget.width / canvasRect.width;
-    const scaleY = e.currentTarget.height / canvasRect.height;
     
-    // Convert click coordinates to canvas space
-    const canvasX = (e.clientX - canvasRect.left - viewport.x) / viewport.zoom;
-    const canvasY = (e.clientY - canvasRect.top - viewport.y) / viewport.zoom;
+    // Simplify coordinate calculation to reduce lag
+    const canvasX = (e.clientX - canvasRect.left - viewport.x);
+    const canvasY = (e.clientY - canvasRect.top - viewport.y);
 
     // First check if we clicked on a text box
     const clickedTextBox = textBoxes.find(box => {
@@ -214,6 +212,7 @@ export default function Whiteboard() {
     }
   };
 
+  // Use debounce or throttle to reduce wheel event frequency
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     
@@ -222,7 +221,7 @@ export default function Whiteboard() {
       return;
     }
     
-    // Only handle panning
+    // Only handle panning, with simpler calculation
     updateViewport({
       ...viewport,
       x: viewport.x - e.deltaX,
@@ -231,6 +230,13 @@ export default function Whiteboard() {
     });
   }, [viewport, updateViewport]);
 
+  // Use ref to prevent unnecessary rerendering
+  const viewportRef = useRef(viewport);
+  useEffect(() => {
+    viewportRef.current = viewport;
+  }, [viewport]);
+
+  // Fix the handlePan function with proper implementation
   const handlePan = useCallback((e: React.MouseEvent) => {
     if (e.buttons !== 4 && e.buttons !== 1) return;
     
@@ -258,15 +264,23 @@ export default function Whiteboard() {
       onClick={handleClickOutside}
     >
       <Grid viewport={viewport} />
+      
+      {/* Reduce unnecessary style calculations */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"
-        style={canvasStyle}
+        style={{
+          transform: `translate(${viewport.x}px, ${viewport.y}px)`,
+          transformOrigin: '0 0',
+        }}
       />
       <canvas
         ref={tempCanvasRef}
         className="absolute inset-0 w-full h-full"
-        style={canvasStyle}
+        style={{
+          transform: `translate(${viewport.x}px, ${viewport.y}px)`,
+          transformOrigin: '0 0',
+        }}
         onMouseDown={handleCanvasMouseDown}
         onMouseMove={(e) => {
           if (tool === 'eraser' && isDragging) {
@@ -286,6 +300,8 @@ export default function Whiteboard() {
           handleMouseLeave();
         }}
       />
+      
+      {/* Optimize text box rendering */}
       {textBoxes.map((textBox) => (
         <div
           key={textBox.id}
@@ -295,7 +311,6 @@ export default function Whiteboard() {
             top: `${textBox.y + viewport.y}px`,
             width: `${textBox.width}px`,
             height: `${textBox.height}px`,
-            transform: `scale(${viewport.zoom})`,
             transformOrigin: '0 0',
             pointerEvents: tool === 'eraser' ? 'none' : 'auto',
           }}
@@ -328,59 +343,56 @@ export default function Whiteboard() {
           </div>
         </div>
       ))}
+      
+      {/* Remove redundant TextInput component and simplify */}
       {textInput && (
         <div
-          className="absolute text-input-container"
+          className="absolute text-input-container z-50"
           style={{
-            left: `${textInput.x * viewport.zoom + viewport.x}px`,
-            top: `${textInput.y * viewport.zoom + viewport.y}px`,
+            left: `${textInput.x + viewport.x}px`,
+            top: `${textInput.y + viewport.y}px`,
             width: `${textInput.width}px`,
             height: `${textInput.height}px`,
-            transform: `scale(${viewport.zoom})`,
             transformOrigin: '0 0',
-            zIndex: 1000,  // Ensure it's above other elements
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            startTextBoxDrag(e, bounds);
           }}
         >
-          <div
-            className="absolute inset-0 border-2 border-blue-500 rounded-lg bg-white shadow-lg"
-            onMouseDown={(e) => {
-              e.stopPropagation();  // Prevent canvas events
-              startTextBoxDrag(e, bounds);
+          <textarea
+            ref={textInputRef}
+            className="w-full h-full p-2 bg-white border-2 border-blue-500 rounded-lg shadow-lg outline-none resize-none"
+            style={{
+              fontSize: `${textInput.fontSize}px`,
+              color: textInput.color,
+              fontFamily: 'Inter, sans-serif',
+              lineHeight: '1.2',
             }}
-          >
-            <textarea
-              ref={textInputRef}
-              className="w-full h-full p-2 bg-transparent border-none outline-none resize-none font-inter rounded-lg"
-              style={{
-                fontSize: `${textInput.fontSize}px`,
-                color: textInput.color,
-                fontFamily: 'Inter, sans-serif',
-                lineHeight: '1.2',
-              }}
-              value={textInput.text}
-              onChange={(e) => {
-                const newHeight = Math.max(40, e.target.scrollHeight);
-                setTextInput({
-                  ...textInput,
-                  text: e.target.value,
-                  height: newHeight,
-                });
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  commitText();
-                } else if (e.key === 'Escape') {
-                  setTextInput(null);
-                }
-              }}
-              onClick={(e) => e.stopPropagation()}
-              placeholder="Type something..."
-              autoFocus
-            />
-          </div>
+            value={textInput.text}
+            onChange={(e) => {
+              const newHeight = Math.max(40, e.target.scrollHeight);
+              setTextInput({
+                ...textInput,
+                text: e.target.value,
+                height: newHeight,
+              });
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                commitText();
+              } else if (e.key === 'Escape') {
+                setTextInput(null);
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Type something..."
+            autoFocus
+          />
         </div>
       )}
+      
       <Cursor
         x={cursorPosition.x}
         y={cursorPosition.y}
@@ -403,14 +415,7 @@ export default function Whiteboard() {
         setSize={setSize}
         tool={tool}
       />
-      <TextInput
-        textInput={textInput}
-        viewport={viewport}
-        size={size}
-        color={color}
-        onCommit={commitText}
-        onUpdate={updateTextInput}
-      />
+      {/* Remove or simplify this component as it's redundant with the inline text input */}
     </div>
   )
 }

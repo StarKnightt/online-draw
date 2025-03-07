@@ -1,54 +1,89 @@
-interface TextInputProps {
-  textInput: {
-    x: number;
-    y: number;
-    text: string;
-    width: number;
-    height: number;
-    isEditing: boolean;
-  } | null;
-  viewport: { x: number; y: number; zoom: number };
-  size: number;
+import React, { useRef, useEffect } from 'react'
+
+interface TextBox {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  width: number;
+  height: number;
+  fontSize: number;
   color: string;
-  onUpdate: (text: string) => void;
-  onCommit: () => void;
+  isDragging: boolean;
+  isResizing: boolean;
+  isEditing: boolean;
+  resizeDirection: 'nw' | 'ne' | 'sw' | 'se' | null;
+  initialX: number;
+  initialY: number;
+  initialWidth: number;
+  initialHeight: number;
 }
 
-export function TextInput({ textInput, viewport, size, color, onUpdate, onCommit }: TextInputProps) {
-  if (!textInput) return null
+interface TextInputProps {
+  textInput: TextBox | null;
+  viewport: {
+    x: number;
+    y: number;
+    zoom: number;
+  };
+  size: number;
+  color: string;
+  onCommit: () => void;
+  onUpdate: (text: string) => void;
+}
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      onCommit()
+export function TextInput({ textInput, viewport, size, color, onCommit, onUpdate }: TextInputProps) {
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textInput && textAreaRef.current) {
+      textAreaRef.current.focus();
+      // Place cursor at the end of text
+      const length = textAreaRef.current.value.length;
+      textAreaRef.current.setSelectionRange(length, length);
     }
-  }
+  }, [textInput]);
+
+  if (!textInput) return null;
 
   return (
     <div
-      className="absolute"
+      className="absolute pointer-events-auto z-50 text-input-container"
       style={{
-        left: (textInput.x * viewport.zoom + viewport.x) + 'px',
-        top: (textInput.y * viewport.zoom + viewport.y) + 'px',
-        transform: `scale(${viewport.zoom})`,
+        left: `${textInput.x + viewport.x}px`,
+        top: `${textInput.y + viewport.y}px`,
+        width: `${textInput.width}px`,
+        height: `${textInput.height}px`,
         transformOrigin: '0 0',
       }}
     >
-      <textarea
-        autoFocus
-        className="min-w-[100px] resize-none overflow-hidden border-none bg-transparent p-0 outline-none"
-        style={{
-          fontSize: `${size * 4}px`,
-          lineHeight: '1.2',
-          color: color,
-          width: Math.max(100, textInput.width + 20) + 'px',
-          height: Math.max(textInput.height, size * 4) + 'px',
-        }}
-        value={textInput.text}
-        onChange={(e) => onUpdate(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={onCommit}
-      />
+      <div className="absolute inset-0 border-2 border-blue-500 rounded bg-white">
+        <textarea
+          ref={textAreaRef}
+          className="w-full h-full p-2 bg-transparent border-none outline-none resize-none"
+          style={{
+            fontSize: `${textInput.fontSize}px`,
+            color: textInput.color || color,
+            lineHeight: '1.2',
+            fontFamily: 'Inter, sans-serif',
+          }}
+          value={textInput.text || ''}
+          onChange={(e) => onUpdate(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              onCommit();
+            } else if (e.key === 'Escape') {
+              // Cancel text input
+              onUpdate('');
+              onCommit();
+            }
+          }}
+          onBlur={() => onCommit()}
+          placeholder="Type something..."
+          autoFocus
+        />
+      </div>
     </div>
-  )
-} 
+  );
+}

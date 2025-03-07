@@ -1,9 +1,10 @@
 {
   "name": "whiteboard-app",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "A collaborative whiteboard application with drawing tools",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -31,6 +32,18 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/whiteboard-app.git"
+  },
+  "keywords": [
+    "whiteboard",
+    "drawing",
+    "collaboration",
+    "next.js"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
   "overrides": {
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4"

@@ -1,86 +1,82 @@
-# Collaborative Whiteboard App
+# Whiteboard App v1.0.0
 
-A modern, feature-rich whiteboard application built with Next.js and TypeScript. This interactive whiteboard provides a seamless drawing experience with multiple tools and features.
+A collaborative whiteboard application built with Next.js and React that allows users to draw, write, and collaborate in real-time.
+
+![Whiteboard App Screenshot](./screenshot.png)
 
 ## Features
 
-- 🎨 Multiple Drawing Tools:
-  - Pen tool for freehand drawing
-  - Rectangle and ellipse shapes
-  - Text tool with resizable text boxes
-  - Eraser tool
-  
-- 🎯 Advanced Controls:
-  - Customizable brush sizes
-  - Color picker with preset colors
-  - Undo/redo functionality
-  - Clear canvas option
+- 🎨 Multiple drawing tools: pen, rectangle, ellipse, text, and eraser
+- 🔄 Undo/redo functionality
+- 🎭 Different colors and sizes for drawing
+- 📝 Text input with customizable font sizes
+- 🔍 Canvas panning for larger drawing areas
+- 📱 Responsive design for various screen sizes
 
-- 🔄 Interactive Canvas:
-  - Pan and zoom functionality
-  - Grid background for better alignment
-  - Custom cursor indicators
-  - Responsive design
+## Technologies Used
 
-## Tech Stack
-
-- **Framework**: Next.js 15
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
-- **Icons**: Lucide React
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- HTML5 Canvas API
 
 ## Getting Started
 
-1. Clone the repository:
+### Prerequisites
+
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+
+1. Clone the repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/yourusername/whiteboard-app.git
+cd whiteboard-app
 ```
 
-2. Install dependencies:
+2. Install dependencies
 ```bash
 npm install
+# or
+yarn
 ```
 
-3. Run the development server:
+3. Run the development server
 ```bash
 npm run dev
+# or
+yarn dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
 ## Usage
 
-### Drawing Tools
+- **Select a tool** from the toolbar at the bottom of the screen
+- **Choose colors and sizes** from the right sidebar
+- **Draw freely** with the pen tool
+- **Add shapes** with the rectangle and ellipse tools
+- **Add text** with the text tool
+- **Pan the canvas** by holding the middle mouse button or using the select tool
+- **Erase elements** using the eraser tool
+- **Undo/redo** actions with the buttons in the toolbar
 
-- **Pen Tool**: Click and drag to draw freehand
-- **Rectangle/Ellipse**: Click and drag to create shapes
-- **Text**: Click to place a text box, type your text, and press Enter to commit
-- **Eraser**: Click and drag to erase content
-- **Selection**: Select and move elements (coming soon)
+## License
 
-### Canvas Controls
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- **Pan**: Middle-click and drag or use scroll wheel
-- **Zoom**: Ctrl + scroll wheel
-- **Undo/Redo**: Use the toolbar buttons or keyboard shortcuts (Ctrl+Z, Ctrl+Y)
+## Roadmap
 
-### Customization
+Features planned for future releases:
 
-- Choose from preset colors in the color picker
-- Adjust brush sizes using the size selector
-- Different size options available for text and drawing tools
+- Collaborative real-time editing
+- Zoom functionality
+- Saving drawings to the cloud
+- Custom image uploads
+- More drawing tools and shapes
 
-## Project Structure
+## Acknowledgements
 
-```
-app/
-├── components/     # UI components
-├── hooks/         # Custom React hooks
-├── lib/           # Utility functions
-└── whiteboard.tsx # Main whiteboard component
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+Special thanks to all contributors and the open-source libraries that made this project possible.
