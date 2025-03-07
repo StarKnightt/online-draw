@@ -14,26 +14,19 @@ export function useViewport() {
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 })
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
+    // Temporarily disable zooming for now
     if (e.ctrlKey) {
-      // Handle zooming
+      // Prevent default zoom behavior
       e.preventDefault()
-      const delta = e.deltaY
-      const zoomSensitivity = 0.001
-      setViewport(prev => {
-        const newZoom = Math.min(Math.max(prev.zoom - delta * zoomSensitivity, 0.1), 5)
-        return {
-          ...prev,
-          zoom: newZoom,
-        }
-      })
-    } else {
-      // Handle panning
-      setViewport(prev => ({
-        ...prev,
-        x: prev.x - e.deltaX,
-        y: prev.y - e.deltaY,
-      }))
+      return
     }
+    
+    // Only handle panning
+    setViewport(prev => ({
+      ...prev,
+      x: prev.x - e.deltaX,
+      y: prev.y - e.deltaY,
+    }))
   }, [])
 
   const startDragging = useCallback((e: React.MouseEvent) => {
@@ -53,6 +46,8 @@ export function useViewport() {
         ...prev,
         x: prev.x + dx,
         y: prev.y + dy,
+        // Keep zoom fixed at 1 for now
+        zoom: 1
       }))
     }
   }, [isDragging, lastPosition])
@@ -63,6 +58,7 @@ export function useViewport() {
 
   return {
     viewport,
+    setViewport,
     handleWheel,
     startDragging,
     drag,

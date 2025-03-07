@@ -217,30 +217,19 @@ export default function Whiteboard() {
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     
-    const delta = e.deltaY;
-    const zoom = viewport.zoom * Math.pow(0.95, delta / 100);
+    // Disable zooming with wheel for now
+    if (e.ctrlKey) {
+      return;
+    }
     
-    // Limit zoom level
-    const newZoom = Math.min(Math.max(0.1, zoom), 5);
-    
-    // Get mouse position relative to canvas
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    // Calculate new position to zoom towards mouse
-    const newX = viewport.x + (mouseX - mouseX * (newZoom / viewport.zoom));
-    const newY = viewport.y + (mouseY - mouseY * (newZoom / viewport.zoom));
-    
-    // Use updateViewport instead of setViewport to ensure redraw
+    // Only handle panning
     updateViewport({
-      x: newX,
-      y: newY,
-      zoom: newZoom,
+      ...viewport,
+      x: viewport.x - e.deltaX,
+      y: viewport.y - e.deltaY,
+      zoom: 1, // Keep zoom fixed at 1
     });
-  }, [viewport, canvasRef, updateViewport]);
+  }, [viewport, updateViewport]);
 
   const handlePan = useCallback((e: React.MouseEvent) => {
     if (e.buttons !== 4 && e.buttons !== 1) return;
@@ -249,6 +238,7 @@ export default function Whiteboard() {
       ...viewport,
       x: viewport.x + e.movementX,
       y: viewport.y + e.movementY,
+      zoom: 1, // Keep zoom fixed at 1
     });
   }, [viewport, updateViewport]);
 

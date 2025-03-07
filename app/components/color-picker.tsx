@@ -70,8 +70,8 @@ export function ColorPicker({ color, setColor, size, setSize, tool }: ColorPicke
                 key={s.id}
                 variant={size === s.value ? "default" : "ghost"}
                 className={cn(
-                  "w-full justify-start",
-                  size === s.value && "bg-gray-200 hover:bg-gray-200"
+                  "w-full justify-start text-left",
+                  size === s.value ? "bg-gray-200 hover:bg-gray-200" : ""
                 )}
                 onClick={() => setSize(s.value)}
               >
@@ -89,7 +89,10 @@ export function ColorPicker({ color, setColor, size, setSize, tool }: ColorPicke
             <Button
               key={fs.id}
               variant={size === fs.value ? "default" : "ghost"}
-              className="w-full"
+              className={cn(
+                "w-full justify-start text-left",
+                size === fs.value ? "bg-gray-200 hover:bg-gray-200" : ""
+              )}
               onClick={() => setSize(fs.value)}
             >
               {fs.id}
