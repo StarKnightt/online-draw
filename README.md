@@ -67,7 +67,6 @@ npm start
 
 ## 🔜 Roadmap
 
-- [ ] Collaborative drawing
 - [ ] Custom shape tools
 - [ ] Image import/export
 - [ ] Dark mode
