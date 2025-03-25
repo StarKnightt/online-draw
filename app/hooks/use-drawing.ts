@@ -140,7 +140,6 @@ const isShapeIntersectingEraser = (
       return false;
   }
 };
-
 // First, add a helper function to check if a point is inside a shape
 const isPointInShape = (x: number, y: number, element: DrawingElement): boolean => {
   switch (element.type) {
