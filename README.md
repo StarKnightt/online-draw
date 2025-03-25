@@ -1,82 +1,104 @@
-# Whiteboard App v1.0.0
+# 🎨 Online Whiteboard (Beta)
 
-A collaborative whiteboard application built with Next.js and React that allows users to draw, write, and collaborate in real-time.
+A lightweight, responsive whiteboard application built with Next.js 14 and TypeScript. Perfect for quick sketches, teaching, and collaborative brainstorming.
 
-![Whiteboard App Screenshot](./screenshot.png)
+![Version](https://img.shields.io/badge/version-0.1.0--beta-blue)
+![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-## Features
+## ✨ Features
 
-- 🎨 Multiple drawing tools: pen, rectangle, ellipse, text, and eraser
-- 🔄 Undo/redo functionality
-- 🎭 Different colors and sizes for drawing
-- 📝 Text input with customizable font sizes
-- 🔍 Canvas panning for larger drawing areas
-- 📱 Responsive design for various screen sizes
+- 🖌️ Multiple drawing tools:
+  - Pen tool with customizable stroke width
+  - Rectangle and ellipse shapes
+  - Text input with adjustable size
+  - Smart eraser that works with all shapes
+  
+- 🎯 Advanced Canvas Features:
+  - Smooth panning and zooming
+  - Precise shape rendering
+  - Optimized performance
+  
+- 🔄 History Management:
+  - Undo/Redo functionality
+  - State persistence
+  
+- 💻 Technical Highlights:
+  - Lightweight (131kB bundle size)
+  - Mobile-responsive
+  - SSR-compatible
+  - Type-safe
 
-## Technologies Used
+## 🚀 Quick Start
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- HTML5 Canvas API
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+ 
-- npm or yarn
-
-### Installation
-
-1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/whiteboard-app.git
-cd whiteboard-app
-```
+# Clone the repository
+git clone https://github.com/yourusername/online-whiteboard.git
 
-2. Install dependencies
-```bash
+# Install dependencies
 npm install
-# or
-yarn
-```
 
-3. Run the development server
-```bash
+# Run development server
 npm run dev
-# or
-yarn dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+Visit `http://localhost:3000` to start drawing!
 
-## Usage
+## 🛠️ Development
 
-- **Select a tool** from the toolbar at the bottom of the screen
-- **Choose colors and sizes** from the right sidebar
-- **Draw freely** with the pen tool
-- **Add shapes** with the rectangle and ellipse tools
-- **Add text** with the text tool
-- **Pan the canvas** by holding the middle mouse button or using the select tool
-- **Erase elements** using the eraser tool
-- **Undo/redo** actions with the buttons in the toolbar
+```bash
+# Run tests
+npm test
 
-## License
+# Build for production
+npm run build
+
+# Start production server
+npm start
+```
+
+## 📦 Tech Stack
+
+- Next.js 14
+- TypeScript
+- TailwindCSS
+- Canvas API
+
+## 🔜 Roadmap
+
+- [ ] Collaborative drawing
+- [ ] Custom shape tools
+- [ ] Image import/export
+- [ ] Dark mode
+- [ ] Touch gesture support
+- [ ] Layer management
+
+## 🐛 Known Issues (Beta)
+
+- Text scaling might need adjustment on some zoom levels
+- Mobile eraser experience needs optimization
+- Some browser extensions might cause hydration warnings
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Roadmap
+## 🙏 Acknowledgments
 
-Features planned for future releases:
+- Next.js team for the amazing framework
+- Our contributors and early testers
 
-- Collaborative real-time editing
-- Zoom functionality
-- Saving drawings to the cloud
-- Custom image uploads
-- More drawing tools and shapes
+---
 
-## Acknowledgements
-
-Special thanks to all contributors and the open-source libraries that made this project possible.
+Made with ❤️ by [Your Name/Team]

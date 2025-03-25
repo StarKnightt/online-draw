@@ -1,8 +1,8 @@
 {
-  "name": "whiteboard-app",
-  "version": "1.0.0",
-  "description": "A collaborative whiteboard application with drawing tools",
-  "private": true,
+  "name": "online-whiteboard",
+  "version": "0.1.0-beta",
+  "private": false,
+  "description": "A lightweight, responsive whiteboard application built with Next.js 14",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -34,13 +34,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/whiteboard-app.git"
+    "url": "https://github.com/yourusername/online-whiteboard.git"
   },
   "keywords": [
     "whiteboard",
     "drawing",
-    "collaboration",
-    "next.js"
+    "nextjs",
+    "typescript",
+    "canvas"
   ],
   "author": "Your Name",
   "license": "MIT",
