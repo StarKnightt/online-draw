@@ -30,6 +30,7 @@ interface TextBox {
 export type Tool = 'select' | 'pen' | 'rectangle' | 'ellipse' | 'text' | 'eraser' | 'path'
 
 export interface DrawingElement {
+  id: string
   type: Tool
   points: Point[]
   color: string
@@ -140,6 +141,94 @@ const isShapeIntersectingEraser = (
   }
 };
 
+// First, add a helper function to check if a point is inside a shape
+const isPointInShape = (x: number, y: number, element: DrawingElement): boolean => {
+  switch (element.type) {
+    case 'pen':
+    case 'path':
+      // For paths, check if point is near any segment
+      return element.points.some((point, i) => {
+        if (i === 0) return false;
+        const prev = element.points[i - 1];
+        // Check if point is near line segment
+        const distance = distanceToLineSegment(
+          x, y,
+          prev.x, prev.y,
+          point.x, point.y
+        );
+        return distance < element.size / 2;
+      });
+
+    case 'rectangle': {
+      const startX = Math.min(element.points[0].x, element.points[element.points.length - 1].x);
+      const startY = Math.min(element.points[0].y, element.points[element.points.length - 1].y);
+      const width = Math.abs(element.points[element.points.length - 1].x - element.points[0].x);
+      const height = Math.abs(element.points[element.points.length - 1].y - element.points[0].y);
+      
+      return x >= startX && x <= startX + width && 
+             y >= startY && y <= startY + height;
+    }
+
+    case 'ellipse': {
+      const centerX = (element.points[0].x + element.points[element.points.length - 1].x) / 2;
+      const centerY = (element.points[0].y + element.points[element.points.length - 1].y) / 2;
+      const radiusX = Math.abs(element.points[element.points.length - 1].x - element.points[0].x) / 2;
+      const radiusY = Math.abs(element.points[element.points.length - 1].y - element.points[0].y) / 2;
+      
+      return isPointInEllipse(x, y, centerX, centerY, radiusX, radiusY);
+    }
+
+    case 'text': {
+      const padding = 4; // Add some padding for easier selection
+      return x >= element.points[0].x - padding && 
+             x <= element.points[0].x + (element.width || 0) + padding &&
+             y >= element.points[0].y - padding && 
+             y <= element.points[0].y + (element.height || 0) + padding;
+    }
+
+    default:
+      return false;
+  }
+};
+
+// Add distance to line segment helper
+const distanceToLineSegment = (
+  px: number, py: number,   // Point to check
+  x1: number, y1: number,   // Start of line
+  x2: number, y2: number    // End of line
+): number => {
+  const A = px - x1;
+  const B = py - y1;
+  const C = x2 - x1;
+  const D = y2 - y1;
+
+  const dot = A * C + B * D;
+  const lenSq = C * C + D * D;
+  let param = -1;
+
+  if (lenSq !== 0) {
+    param = dot / lenSq;
+  }
+
+  let xx, yy;
+
+  if (param < 0) {
+    xx = x1;
+    yy = y1;
+  } else if (param > 1) {
+    xx = x2;
+    yy = y2;
+  } else {
+    xx = x1 + param * C;
+    yy = y1 + param * D;
+  }
+
+  const dx = px - xx;
+  const dy = py - yy;
+
+  return Math.sqrt(dx * dx + dy * dy);
+};
+
 export function useDrawing() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const tempCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -160,6 +249,7 @@ export function useDrawing() {
   const [textBoxes, setTextBoxes] = useState<TextBox[]>([])
   const [selectedTextBox, setSelectedTextBox] = useState<string | null>(null)
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
+  const [dragStart, setDragStart] = useState<Point | null>(null)
 
   const getSmoothPoints = (points: Point[]): Point[] => {
     if (points.length < 3) return points;
@@ -503,6 +593,7 @@ export function useDrawing() {
       }
       
       const newElement = {
+        id: Date.now().toString(),
         type: tool,
         points: currentPoints.current,
         color,
@@ -531,6 +622,7 @@ export function useDrawing() {
     contextRef.current.fillText(text, textInput.x, textInput.y)
 
     const newElement: DrawingElement = {
+      id: Date.now().toString(),
       type: 'text',
       points: [{ x: textInput.x, y: textInput.y }],
       color,
@@ -679,6 +771,7 @@ export function useDrawing() {
 
     // Add to drawing history
     const newElement: DrawingElement = {
+      id: Date.now().toString(),
       type: 'text',
       points: [{ x: textInput.x, y: textInput.y }],
       color: textInput.color,
@@ -825,6 +918,56 @@ export function useDrawing() {
     ));
   }, [selectedTextBox, textBoxes, tool, viewport.zoom]);
 
+  // Update the handleSelect function
+  const handleSelect = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (tool !== 'select') return;
+
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left - viewport.x) / viewport.zoom;
+    const y = (e.clientY - rect.top - viewport.y) / viewport.zoom;
+
+    // Find the topmost element that contains the click point
+    const selectedElement = [...elements].reverse().find(element => 
+      isPointInShape(x, y, element)
+    );
+
+    setSelectedElement(selectedElement || null);
+    
+    // If we found an element, we might want to start dragging it
+    if (selectedElement) {
+      setIsDragging(true);
+      setDragStart({ x, y });
+    }
+  }, [tool, elements, viewport]);
+
+  // Add dragging functionality
+  const handleDrag = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDragging || !selectedElement || !dragStart) return;
+
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left - viewport.x) / viewport.zoom;
+    const y = (e.clientY - rect.top - viewport.y) / viewport.zoom;
+
+    const dx = x - dragStart.x;
+    const dy = y - dragStart.y;
+
+    setElements(prev => prev.map(el => 
+      el.id === selectedElement.id
+        ? {
+            ...el,
+            points: el.points.map(p => ({
+              x: p.x + dx,
+              y: p.y + dy
+            }))
+          }
+        : el
+    ));
+
+    setDragStart({ x, y });
+  }, [isDragging, selectedElement, dragStart, viewport]);
+
   return {
     canvasRef,
     tempCanvasRef,
@@ -866,5 +1009,13 @@ export function useDrawing() {
     updateViewport,
     viewport,
     setViewport,
+    selectedElement,
+    setSelectedElement,
+    dragStart,
+    setDragStart,
+    handleSelect,
+    handleDrag,
+    elements,
+    setElements,
   }
 }

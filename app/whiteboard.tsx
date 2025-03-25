@@ -45,6 +45,10 @@ export default function Whiteboard() {
     viewport,
     setViewport,
     updateViewport,
+    selectedElement,
+    setSelectedElement,
+    elements,
+    setElements,
   } = useDrawing()
 
   const {
@@ -244,6 +248,32 @@ export default function Whiteboard() {
       zoom: prev.zoom // Maintain zoom level
     }));
   }, [setViewport]);
+
+  // Add visual feedback for selected elements
+  const drawSelectedElement = useCallback((ctx: CanvasRenderingContext2D) => {
+    if (!selectedElement) return;
+
+    ctx.save();
+    ctx.strokeStyle = '#0066ff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+
+    // Draw selection box based on element type
+    switch (selectedElement.type) {
+      case 'rectangle': {
+        const startX = Math.min(selectedElement.points[0].x, selectedElement.points[selectedElement.points.length - 1].x);
+        const startY = Math.min(selectedElement.points[0].y, selectedElement.points[selectedElement.points.length - 1].y);
+        const width = Math.abs(selectedElement.points[selectedElement.points.length - 1].x - selectedElement.points[0].x);
+        const height = Math.abs(selectedElement.points[selectedElement.points.length - 1].y - selectedElement.points[0].y);
+        
+        ctx.strokeRect(startX - 4, startY - 4, width + 8, height + 8);
+        break;
+      }
+      // Add cases for other shapes...
+    }
+
+    ctx.restore();
+  }, [selectedElement]);
 
   return (
     <div
