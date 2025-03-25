@@ -27,7 +27,7 @@ interface TextBox {
   initialHeight: number;
 }
 
-export type Tool = 'select' | 'pen' | 'rectangle' | 'ellipse' | 'text' | 'eraser'
+export type Tool = 'select' | 'pen' | 'rectangle' | 'ellipse' | 'text' | 'eraser' | 'path'
 
 export interface DrawingElement {
   type: Tool
@@ -38,6 +38,25 @@ export interface DrawingElement {
   width?: number
   height?: number
 }
+
+type DrawElement = {
+  id: string;
+  type: 'path' | 'rectangle' | 'ellipse' | 'text';
+  color: string;
+  size: number;
+  // For paths
+  points?: { x: number; y: number }[];
+  // For rectangles and ellipses
+  startX?: number;
+  startY?: number;
+  endX?: number;
+  endY?: number;
+  // For text
+  text?: string;
+  x?: number;
+  y?: number;
+  fontSize?: number;
+};
 
 const isPointInRect = (x: number, y: number, rect: { x: number; y: number; width: number; height: number }) => {
   return x >= rect.x && 
@@ -51,6 +70,75 @@ const isPointNearPath = (x: number, y: number, points: Point[], threshold = 5) =
     Math.hypot(point.x - x, point.y - y) <= threshold
   )
 }
+
+const isPointInEllipse = (
+  x: number, 
+  y: number, 
+  centerX: number, 
+  centerY: number, 
+  radiusX: number, 
+  radiusY: number
+) => {
+  // Normalize point position relative to ellipse center
+  const normalizedX = x - centerX;
+  const normalizedY = y - centerY;
+  
+  // Check if point is inside ellipse using the ellipse equation
+  return (normalizedX * normalizedX) / (radiusX * radiusX) + 
+         (normalizedY * normalizedY) / (radiusY * radiusY) <= 1;
+};
+
+const isShapeIntersectingEraser = (
+  eraseX: number,
+  eraseY: number,
+  eraseRadius: number,
+  element: DrawingElement
+): boolean => {
+  switch (element.type) {
+    case 'pen':
+    case 'path':
+      return element.points.some(point => 
+        Math.hypot(point.x - eraseX, point.y - eraseY) <= eraseRadius
+      );
+      
+    case 'rectangle': {
+      const startX = element.points[0].x;
+      const startY = element.points[0].y;
+      const endX = element.points[element.points.length - 1].x;
+      const endY = element.points[element.points.length - 1].y;
+      
+      // Check if eraser intersects with any of the rectangle's edges
+      const left = Math.min(startX, endX);
+      const right = Math.max(startX, endX);
+      const top = Math.min(startY, endY);
+      const bottom = Math.max(startY, endY);
+      
+      // Check if eraser circle intersects with rectangle
+      const closestX = Math.max(left, Math.min(eraseX, right));
+      const closestY = Math.max(top, Math.min(eraseY, bottom));
+      const distance = Math.hypot(eraseX - closestX, eraseY - closestY);
+      
+      return distance <= eraseRadius;
+    }
+    
+    case 'ellipse': {
+      const centerX = (element.points[0].x + element.points[element.points.length - 1].x) / 2;
+      const centerY = (element.points[0].y + element.points[element.points.length - 1].y) / 2;
+      const radiusX = Math.abs(element.points[element.points.length - 1].x - element.points[0].x) / 2;
+      const radiusY = Math.abs(element.points[element.points.length - 1].y - element.points[0].y) / 2;
+      
+      // Scale the eraser radius based on the ellipse's aspect ratio
+      const scaledX = (eraseX - centerX) / radiusX;
+      const scaledY = (eraseY - centerY) / radiusY;
+      const distance = Math.hypot(scaledX, scaledY);
+      
+      return distance <= 1 + eraseRadius / Math.min(radiusX, radiusY);
+    }
+    
+    default:
+      return false;
+  }
+};
 
 export function useDrawing() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -182,9 +270,6 @@ export function useDrawing() {
       context.strokeStyle = color
       context.lineWidth = size
       
-      // Don't apply transformation here - it causes performance issues
-      // Let's handle this in our rendering logic instead
-      
       contextRef.current = context
 
       tempContext.lineCap = 'round'
@@ -197,7 +282,7 @@ export function useDrawing() {
       // Call redrawCanvas to ensure everything is rendered correctly
       redrawCanvas();
     }
-  }, [color, size, viewport, redrawCanvas])
+  }, [color, size, redrawCanvas]);
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = e.currentTarget;
@@ -470,21 +555,74 @@ export function useDrawing() {
     setHistoryIndex(prev => prev + 1)
   }, [])
 
+  const drawElement = useCallback((context: CanvasRenderingContext2D, element: DrawingElement) => {
+    if (!context) return;
+
+    context.beginPath();
+    context.strokeStyle = element.color;
+    context.lineWidth = element.size;
+
+    switch (element.type) {
+      case 'pen':
+      case 'path':
+        if (element.points.length < 2) return;
+        context.moveTo(element.points[0].x, element.points[0].y);
+        for (let i = 1; i < element.points.length; i++) {
+          context.lineTo(element.points[i].x, element.points[i].y);
+        }
+        context.stroke();
+        break;
+
+      case 'rectangle':
+        const width = element.points[element.points.length - 1].x - element.points[0].x;
+        const height = element.points[element.points.length - 1].y - element.points[0].y;
+        context.strokeRect(element.points[0].x, element.points[0].y, width, height);
+        break;
+
+      case 'ellipse':
+        const centerX = (element.points[0].x + element.points[element.points.length - 1].x) / 2;
+        const centerY = (element.points[0].y + element.points[element.points.length - 1].y) / 2;
+        const radiusX = Math.abs(element.points[element.points.length - 1].x - element.points[0].x) / 2;
+        const radiusY = Math.abs(element.points[element.points.length - 1].y - element.points[0].y) / 2;
+        context.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+        context.stroke();
+        break;
+
+      case 'text':
+        context.font = `${element.size * 4}px Inter, sans-serif`;
+        context.fillStyle = element.color;
+        context.fillText(element.text || '', element.points[0].x, element.points[0].y + element.size * 4);
+        break;
+    }
+  }, []);
+
   const undo = useCallback(() => {
     if (historyIndex > 0) {
-      setHistoryIndex(prev => prev - 1)
-      setElements(history[historyIndex - 1])
-      redrawCanvas()
+      setHistoryIndex(prev => prev - 1);
+      const previousState = history[historyIndex - 1];
+      setElements(previousState);
+      
+      // Clear and redraw in one pass
+      if (contextRef.current && canvasRef.current) {
+        contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        previousState.forEach(element => drawElement(contextRef.current!, element));
+      }
     }
-  }, [history, historyIndex, redrawCanvas])
+  }, [history, historyIndex, drawElement]);
 
   const redo = useCallback(() => {
     if (historyIndex < history.length - 1) {
-      setHistoryIndex(prev => prev + 1)
-      setElements(history[historyIndex + 1])
-      redrawCanvas()
+      setHistoryIndex(prev => prev + 1);
+      const nextState = history[historyIndex + 1];
+      setElements(nextState);
+      
+      // Clear and redraw in one pass
+      if (contextRef.current && canvasRef.current) {
+        contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        nextState.forEach(element => drawElement(contextRef.current!, element));
+      }
     }
-  }, [history, historyIndex, redrawCanvas])
+  }, [history, historyIndex, drawElement]);
 
   const setToolSafely = useCallback((newTool: Tool) => {
     setTool(newTool);
@@ -595,7 +733,9 @@ export function useDrawing() {
           };
           return !isPointInRect(x, y, textBounds);
         }
-        return !isPointNearPath(x, y, el.points, eraseRadius);
+        
+        // Use the new intersection check for all other shapes
+        return !isShapeIntersectingEraser(x, y, eraseRadius, el);
       });
 
       // Save to history if elements were removed

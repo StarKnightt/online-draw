@@ -216,19 +216,17 @@ export default function Whiteboard() {
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     
-    // Disable zooming with wheel for now
     if (e.ctrlKey) {
+      // Handle zoom if needed
       return;
     }
     
-    // Only handle panning, with simpler calculation
-    updateViewport({
-      ...viewport,
-      x: viewport.x - e.deltaX,
-      y: viewport.y - e.deltaY,
-      zoom: 1, // Keep zoom fixed at 1
-    });
-  }, [viewport, updateViewport]);
+    setViewport(prev => ({
+      x: prev.x - e.deltaX,
+      y: prev.y - e.deltaY,
+      zoom: prev.zoom
+    }));
+  }, [setViewport]);
 
   // Use ref to prevent unnecessary rerendering
   const viewportRef = useRef(viewport);
@@ -240,13 +238,12 @@ export default function Whiteboard() {
   const handlePan = useCallback((e: React.MouseEvent) => {
     if (e.buttons !== 4 && e.buttons !== 1) return;
     
-    updateViewport({
-      ...viewport,
-      x: viewport.x + e.movementX,
-      y: viewport.y + e.movementY,
-      zoom: 1, // Keep zoom fixed at 1
-    });
-  }, [viewport, updateViewport]);
+    setViewport(prev => ({
+      x: prev.x + e.movementX,
+      y: prev.y + e.movementY,
+      zoom: prev.zoom // Maintain zoom level
+    }));
+  }, [setViewport]);
 
   return (
     <div

@@ -36,6 +36,14 @@ export function TextInput({ textInput, viewport, size, color, onCommit, onUpdate
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    const textarea = textAreaRef.current;
+    if (!textarea) return;
+    
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [textInput?.text]);
+
+  useEffect(() => {
     if (textInput && textAreaRef.current) {
       textAreaRef.current.focus();
       // Place cursor at the end of text
@@ -52,8 +60,9 @@ export function TextInput({ textInput, viewport, size, color, onCommit, onUpdate
       style={{
         left: `${textInput.x + viewport.x}px`,
         top: `${textInput.y + viewport.y}px`,
-        width: `${textInput.width}px`,
-        height: `${textInput.height}px`,
+        minWidth: '100px',
+        minHeight: '24px',
+        maxWidth: '800px',
         transformOrigin: '0 0',
       }}
     >
@@ -64,8 +73,10 @@ export function TextInput({ textInput, viewport, size, color, onCommit, onUpdate
           style={{
             fontSize: `${textInput.fontSize}px`,
             color: textInput.color || color,
-            lineHeight: '1.2',
+            lineHeight: '1.4',
             fontFamily: 'Inter, sans-serif',
+            width: '100%',
+            overflow: 'hidden',
           }}
           value={textInput.text || ''}
           onChange={(e) => onUpdate(e.target.value)}
