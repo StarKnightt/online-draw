@@ -1,6 +1,6 @@
 {
   "name": "online-whiteboard",
-  "version": "0.1.0-beta",
+  "version": "1.0.0",
   "private": false,
   "description": "A lightweight, responsive whiteboard application built with Next.js 14",
   "scripts": {
