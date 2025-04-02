@@ -1,14 +1,28 @@
 'use client'
 
-import { Tldraw } from '@tldraw/tldraw';
-import '@tldraw/tldraw/tldraw.css';
-import { useCallback, useEffect } from 'react';
-import { Editor } from '@tldraw/editor';
+import { Tldraw } from '@tldraw/tldraw'
+import '@tldraw/tldraw/tldraw.css'
+import { useCallback, useEffect, useState } from 'react'
+import { Editor } from '@tldraw/editor'
+import { cn } from '@/lib/utils'
 
 export default function Whiteboard() {
-  // Add touch event handling configuration
+  const [isDark, setIsDark] = useState(false)
+
+  // Handle theme changes
   useEffect(() => {
-    // This prevents the browser's default touch behavior
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    setIsDark(prefersDark)
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (e: MediaQueryListEvent) => setIsDark(e.matches)
+    mediaQuery.addEventListener('change', handleChange)
+
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
+
+  // Touch event handling
+  useEffect(() => {
     const handleTouch = (e: TouchEvent) => {
       if (e.target instanceof HTMLElement && e.target.closest('.tl-canvas')) {
         e.preventDefault()
@@ -27,7 +41,6 @@ export default function Whiteboard() {
   }, [])
 
   const handleMount = useCallback((editor: Editor) => {
-    // Load any saved state from localStorage
     const savedState = localStorage.getItem('whiteboard-state')
     if (savedState) {
       try {
@@ -37,7 +50,6 @@ export default function Whiteboard() {
       }
     }
 
-    // Save state on changes
     editor.store.listen(() => {
       const snapshot = editor.store.serialize()
       localStorage.setItem('whiteboard-state', JSON.stringify(snapshot))
@@ -45,10 +57,14 @@ export default function Whiteboard() {
   }, [])
 
   return (
-    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>
-      <Tldraw 
+    <div className={cn(
+      "fixed inset-0 overflow-hidden",
+      isDark ? 'dark' : '',
+      "bg-background text-foreground"
+    )}>
+      <Tldraw
         onMount={handleMount}
-        hideUi={false}
+        className={isDark ? 'tldraw-dark' : ''}
       />
     </div>
   )
