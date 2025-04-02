@@ -1,34 +1,38 @@
-# 🎨 Online Whiteboard (Beta)
+# 🎨 Online Whiteboard
 
-A lightweight, responsive whiteboard application built with Next.js 14 and TypeScript. Perfect for quick sketches, teaching, and collaborative brainstorming.
+A modern, feature-rich whiteboard application built with Next.js 14, TypeScript, and tldraw. Perfect for sketching, diagramming, and collaborative work.
 
-![Version](https://img.shields.io/badge/version-0.1.0--beta-blue)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Next.js](https://img.shields.io/badge/Next.js-14-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## ✨ Features
 
-- 🖌️ Multiple drawing tools:
-  - Pen tool with customizable stroke width
-  - Rectangle and ellipse shapes
-  - Text input with adjustable size
-  - Smart eraser that works with all shapes
+- 🖌️ Powerful Drawing Tools:
+  - Pen and pencil with pressure sensitivity
+  - Geometric shapes (rectangles, ellipses, arrows)
+  - Text with rich formatting
+  - Advanced eraser
+  - Selection and transformation tools
   
-- 🎯 Advanced Canvas Features:
-  - Smooth panning and zooming
-  - Precise shape rendering
+- 🎯 Professional Features:
+  - Infinite canvas with smooth pan/zoom
+  - Multiple pages support
+  - Precise snapping and alignment
+  - Customizable styles
+  
+- 🔄 Advanced Capabilities:
+  - Undo/Redo
+  - Local state persistence
+  - Export/Import support
+  - Keyboard shortcuts
+  
+- 💻 Technical Excellence:
+  - Built on tldraw's robust engine
   - Optimized performance
-  
-- 🔄 History Management:
-  - Undo/Redo functionality
-  - State persistence
-  
-- 💻 Technical Highlights:
-  - Lightweight (131kB bundle size)
-  - Mobile-responsive
-  - SSR-compatible
-  - Type-safe
+  - Mobile and tablet support
+  - Touch and pen input support
 
 ## 🚀 Quick Start
 
@@ -43,61 +47,58 @@ npm install
 npm run dev
 ```
 
-Visit `http://localhost:3000` to start drawing!
+Visit `http://localhost:3000` to start creating!
 
-## 🛠️ Development
+## 🛠️ How It Works
 
-```bash
-# Run tests
-npm test
+The application is built using:
+- **Next.js 14**: For server-side rendering and routing
+- **tldraw**: Powers the core whiteboard functionality
+- **TypeScript**: Ensures type safety
+- **TailwindCSS**: For styling
 
-# Build for production
-npm run build
+Key implementation details:
+1. Uses tldraw's powerful editor for drawing and manipulation
+2. Implements local storage persistence for saving work
+3. Customized UI with responsive design
+4. Optimized for both desktop and mobile use
 
-# Start production server
-npm start
+## 📦 Project Structure
+
+```
+online-draw/
+├── app/
+│   ├── whiteboard.tsx    # Main whiteboard component
+│   └── layout.tsx        # App layout
+├── public/               # Static assets
+└── package.json         # Dependencies and scripts
 ```
 
-## 📦 Tech Stack
+## 🔜 Future Enhancements
 
-- Next.js 14
-- TypeScript
-- TailwindCSS
-- Canvas API
+- [ ] Collaborative editing
+- [ ] Custom tool extensions
+- [ ] Cloud storage integration
+- [ ] Additional export formats
 
-## 🔜 Roadmap
+## 🙏 Credits
 
-- [ ] Custom shape tools
-- [ ] Image import/export
-- [ ] Dark mode
-- [ ] Touch gesture support
-- [ ] Layer management
+This project is built with:
+- [tldraw](https://tldraw.dev) - The incredible whiteboard engine
+- [Next.js](https://nextjs.org) - React framework
+- [TailwindCSS](https://tailwindcss.com) - Styling
+- [TypeScript](https://www.typescriptlang.org) - Type safety
 
-## 🐛 Known Issues (Beta)
-
-- Text scaling might need adjustment on some zoom levels
-- Mobile eraser experience needs optimization
-- Some browser extensions might cause hydration warnings
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Special thanks to:
+- The tldraw team for their amazing work
+- Next.js team for the framework
+- The open-source community
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- Next.js team for the amazing framework
-- Our contributors and early testers
-
 ---
 
-Made with ❤️ by [Your Name/Team]
+**Note on Implementation:**
+This project utilizes the tldraw library (MIT License) as its core drawing engine. As per the MIT License terms, we can freely use, modify, and distribute the software. The library is used to provide robust drawing capabilities while focusing on the integration, state management, and user interface aspects of the application for academic purposes.
