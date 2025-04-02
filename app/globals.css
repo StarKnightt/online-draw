@@ -70,3 +70,103 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+:root {
+  /* Default light theme variables */
+  --color-background: #ffffff;
+  --color-panel: #f8f9fa;
+  --color-text: #000000;
+  --color-border: #e5e7eb;
+  --color-selected: #3b82f6;
+  --color-hover: rgba(59, 130, 246, 0.1);
+}
+
+/* Dark theme class */
+.dark {
+  --color-background: #1a1a1a;
+  --color-panel: #2a2a2a;
+  --color-text: #ffffff;
+  --color-border: #404040;
+}
+
+/* Additional custom styles */
+.tl-toolbar {
+  /* Custom toolbar styles */
+  backdrop-filter: blur(8px);
+}
+
+.tl-button {
+  /* Custom button styles */
+  transition: all 0.2s ease;
+}
+
+/* Override tldraw default styles */
+.tldraw {
+  --color-background: var(--color-background);
+  --color-panel: var(--color-panel);
+  --color-text: var(--color-text);
+  --color-border: var(--color-border);
+  --color-selected: var(--color-selected);
+  --color-hover: var(--color-hover);
+}
+
+/* Additional dark mode overrides */
+.dark .tldraw {
+  --color-background: var(--color-background);
+  --color-panel: var(--color-panel);
+  --color-text: var(--color-text);
+  --color-border: var(--color-border);
+}
+
+/* TLDraw specific styles */
+.tldraw {
+  position: fixed;
+  inset: 0px;
+  overflow: hidden;
+}
+
+/* Light mode (default) */
+.tldraw {
+  --color-background: #fafafa;
+  --color-hover: #e6e6e6;
+  --color-selected: #2563eb;
+  --color-selected-hover: #1d4ed8;
+  --color-muted: #666666;
+  --color-text: #1a1a1a;
+}
+
+/* Dark mode */
+.tldraw-dark {
+  --color-background: #1a1a1a;
+  --color-hover: #2a2a2a;
+  --color-selected: #3b82f6;
+  --color-selected-hover: #2563eb;
+  --color-muted: #999999;
+  --color-text: #ffffff;
+}
+
+/* Additional styles for better UI */
+.tldraw [data-testid="tools-panel"],
+.tldraw [data-testid="styles-panel"] {
+  background-color: var(--color-background);
+  border: 1px solid var(--color-hover);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tldraw button {
+  color: var(--color-text);
+}
+
+.tldraw button:hover {
+  background-color: var(--color-hover);
+}
+
+.tldraw button[data-isactive="true"] {
+  background-color: var(--color-selected);
+  color: white;
+}
+
+.tldraw button[data-isactive="true"]:hover {
+  background-color: var(--color-selected-hover);
+}

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 export default function Error({
   error,
@@ -14,15 +16,18 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <h2 className="text-xl font-semibold mb-4">Something went wrong!</h2>
-        <button
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <h2 className="text-xl font-semibold text-foreground">Something went wrong!</h2>
+        <p className="text-sm text-muted-foreground mb-4">{error.message}</p>
+        <Button 
           onClick={reset}
+          variant="outline"
+          size="lg"
         >
+          <RefreshCw className="mr-2 h-4 w-4" />
           Try again
-        </button>
+        </Button>
       </div>
     </div>
   );
